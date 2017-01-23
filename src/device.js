@@ -65,11 +65,11 @@ class Device {
 
       this.socket.on('data', (data) => {
         const response = JSON.parse(data.toString('utf8'));
-        if (response.id === this.id && response.result[0] === 'ok') {
+        if (response.id !== this.id) {
           this.socket.destroy();
-          resolve();
+          resolve(response.result);
         } else {
-          reject();
+          reject('id missmatch: ' + response.id + ' != ' + this.id);
         }
       });
 

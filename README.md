@@ -11,10 +11,15 @@ Control all of your Yeelight Devices with Node.js
 
 * Check the examples in [`examples/` folder](https://github.com/kbariotis/yeelight.js/blob/master/examples/).
 * Read the generated documentation [here](https://github.com/kbariotis/yeelight.js/blob/master/DOCS.md).
-* Find the API documentation of the Yeelight devices 
+* Find the API documentation of the Yeelight devices
 [here](http://www.yeelight.com/download/Yeelight_Inter-Operation_Spec.pdf).
 
 ## Contributing
+
+### Build dependencies
+
+- flow: https://flowtype.org/docs/running.html
+- babel plugin: `sudo npm i -g babel-plugin-transform-flow-strip-types`
 
 [Read this first](https://github.com/kbariotis/yeelight.js/blob/master/CONTRIBUTING.md)
 

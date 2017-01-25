@@ -65,7 +65,7 @@ class Device {
 
       this.socket.on('data', (data) => {
         const response = JSON.parse(data.toString('utf8'));
-        if (response.id !== this.id) {
+        if (response.id === this.id) {
           this.socket.destroy();
           resolve(response.result);
         } else {

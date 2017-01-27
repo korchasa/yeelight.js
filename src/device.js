@@ -3,24 +3,23 @@
 import net from 'net';
 import querystring from 'querystring';
 import url from 'url';
+import Logger from './logger';
 
 /**
  * Represents a Yeelight device
  */
 class Device {
 
-  id: string;
   address: string;
   port: string;
-  socket: net.Socket;
+  counter: integer;
+  commands: Array<Object>
+  logger: Logger
 
   /**
    * Constructor
    */
-  constructor(payload: { id: string, address: ?string, port: ?string }) {
-    if (!payload.id) {
-      throw new TypeError('Missing required parameters: id');
-    }
+  constructor(payload: { address: ?string, port: ?string, verbose: ?boolean}) {
     if (!payload.address) {
       throw new TypeError('Missing required parameters: address');
     }
@@ -28,10 +27,11 @@ class Device {
       throw new TypeError('Missing required parameters: port');
     }
 
-    this.id = payload.id;
+    this.commands = [];
+    this.counter = 1;
     this.address = payload.address;
     this.port = payload.port;
-    this.socket = new net.Socket();
+    this.logger = new Logger({ enabled: payload.verbose });
   }
 
   /**
@@ -54,99 +54,149 @@ class Device {
    */
   sendCommand(command: Object): Promise<> {
     return new Promise((resolve, reject) => {
+
+      if (undefined == command.id) {
+        command.id = this.counter++;
+        this.commands.push(command);
+      }
+
       const stringified = JSON.stringify(command);
-      this.socket.connect(
-        {
-          port: this.port,
-          host: this.address,
-        },
-        () => this.socket.write(`${stringified}\r\n`),
+      this.logger.info(`Send: ${stringified}`);
+
+      var socket = new net.Socket();
+      socket.setTimeout(1000);
+      socket.connect(
+        { port: this.port, host: this.address },
+        () => socket.write(`${stringified}\r\n`),
       );
 
-      this.socket.on('data', (data) => {
-        const response = JSON.parse(data.toString('utf8'));
-        if (response.id === this.id) {
-          this.socket.destroy();
+      socket.on('data', (data) => {
+        const string = data.toString('utf8');
+        this.logger.info(`Received: ${string}`);
+        const response = this.unserialize(string);
+
+        if(!response) {
+          this.logger.info(`Not a JSON response ${string}`);
+          return;
+        }
+
+        if (response.method != undefined && "props" == response.method) {
+          return;
+        }
+
+        socket.end();
+
+        if (response.id == command.id) {
+          this.commands = this.commands.filter((command) => command.id != response.id);
           resolve(response.result);
         } else {
-          reject('id missmatch: ' + response.id + ' != ' + this.id);
+          reject(`id missmatch: ${response.id} != ${command.id} in ${string}`);
         }
-      });
 
-      this.socket.on('error', err => reject(err));
-      this.socket.on('close', () => resolve());
+        socket.on('error', (err) => {
+          this.logger.info(`Error ${err}`);
+          reject(err);
+        });
+
+        socket.on('timeout', () => {
+          var command = this.commands[0];
+          console.log(this.commands);
+          this.logger.info(`Timeout, resend ${command}`);
+          this.sendCommand(command);
+        });
+      });
     });
+  }
+
+  unserialize(string: string) {
+    try {
+        var result = JSON.parse(string);
+    } catch (e) {
+        return null;
+    }
+    return result;
   }
 
   /**
    * Power on/off the device
    */
-  powerOn(power: string, effect: string, duration: number): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'set_power', params: [power, effect, duration] });
+  powerOn(effect: string = "smooth", duration: number = 500): Promise<> {
+    return this.sendCommand({ method: 'set_power', params: ["on", effect, duration] });
+  }
+
+  powerOff(effect: string = "smooth", duration: number = 500): Promise<> {
+    return this.sendCommand({ method: 'set_power', params: ["off", effect, duration] });
   }
 
   getProp(props: Array<string>): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'get_prop', params: props });
+    return this.sendCommand({ method: 'get_prop', params: props }, false);
   }
 
   setCtAbx(ctValue: number, effect: string, duration: number): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'set_ct_abx', params: [ctValue, effect, duration] });
+    return this.sendCommand({ method: 'set_ct_abx', params: [ctValue, effect, duration] });
   }
 
   setRgb(rgbValue: number, effect: string, duration: number): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'set_rgb', params: [rgbValue, effect, duration] });
+    return this.sendCommand({ method: 'set_rgb', params: [rgbValue, effect, duration] });
   }
 
   setHsv(hue: number, sat: number, effect: string, duration: number): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'set_hsv', params: [hue, sat, effect, duration] });
+    return this.sendCommand({ method: 'set_hsv', params: [hue, sat, effect, duration] });
   }
 
-  setBright(brightness: number, effect: string, duration: number): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'set_bright', params: [brightness, effect, duration] });
+  setBright(brightness: number, effect: string = "smooth", duration: number = 500): Promise<> {
+    return this.sendCommand({ method: 'set_bright', params: [brightness, effect, duration] });
+  }
+
+  powerOnAndSetBright(brightness: number, effect: string = "smooth", duration: number = 500): Promise<> {
+    var device = this;
+    return device.powerOn().then(() => {
+      return device.setBright(brightness, effect, duration);
+    });
   }
 
   toggle(): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'toggle', params: [] });
+    return this.sendCommand({ method: 'toggle', params: [] });
   }
 
   default(): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'default', params: [] });
+    return this.sendCommand({ method: 'default', params: [] });
   }
 
   startCf(count: number, action: number, flowExpression: string): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'start_cf', params: [count, action, flowExpression] });
+    return this.sendCommand({ method: 'start_cf', params: [count, action, flowExpression] });
   }
 
   stopCf(): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'stop_cf', params: [] });
+    return this.sendCommand({ method: 'stop_cf', params: [] });
   }
 
   setScene(name: string, val1: number, val2: number, val3: number): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'set_scene', params: [name, val1, val2, val3] });
+    return this.sendCommand({ method: 'set_scene', params: [name, val1, val2, val3] });
   }
 
   cronAdd(type: number, value: number): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'cron_add', params: [type, value] });
+    return this.sendCommand({ method: 'cron_add', params: [type, value] });
   }
 
   cronGet(type: number): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'cron_get', params: [type] });
+    return this.sendCommand({ method: 'cron_get', params: [type] });
   }
 
   cronDel(type: number): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'cron_del', params: [type] });
+    return this.sendCommand({ method: 'cron_del', params: [type] });
   }
 
   setAdjust(action: string, prop: string): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'set_adjust', params: [action, prop] });
+    return this.sendCommand({ method: 'set_adjust', params: [action, prop] });
   }
 
   setMusic(action: number, host: string, port: number): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'set_music', params: [action, host, port] });
+    return this.sendCommand({ method: 'set_music', params: [action, host, port] });
   }
 
   setName(name: string): Promise<> {
-    return this.sendCommand({ id: this.id, method: 'set_name', params: [name] });
+    return this.sendCommand({ method: 'set_name', params: [name] });
   }
 }
 

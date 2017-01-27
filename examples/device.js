@@ -4,11 +4,14 @@ var Device = require('../lib/yeelight').Device;
 
 const device = new Device({
   id: '1234',
-  address: '192.168.0.19',
+  address: '192.168.1.228',
   port: '55443',
+  verbose: true
 });
 
 device
-  .toggle()
-  .then(() => console.log('done'))
-  .catch((err) => console.log(err));
+  .powerOnAndSetBright(50)
+  .then(() => {
+    setTimeout(() => device.powerOff(), 1000)
+  })
+  .catch((err) => console.log('err set 1', err));

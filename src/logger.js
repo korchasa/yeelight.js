@@ -17,7 +17,13 @@ class Logger {
     this.options = Object.assign({
       enabled: true,
     }, options);
-    this.logger = winston;
+    this.logger = new (winston.Logger)({
+      transports: [
+        new (winston.transports.Console)({
+          timestamp: true
+        }),
+      ]
+    });
   }
 
   /**

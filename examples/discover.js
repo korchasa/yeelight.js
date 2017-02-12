@@ -4,5 +4,5 @@ const Yeelight = require('../lib/yeelight').Yeelight;
 const yeelight = new Yeelight({verbose: true});
 
 yeelight
-  .discover(2000)
+  .discover(10000)
   .then((devices) => console.log(devices.length));

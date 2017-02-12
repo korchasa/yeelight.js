@@ -64,11 +64,15 @@ class Device {
       this.logger.info(`Send: ${stringified}`);
 
       var socket = new net.Socket();
-      socket.setTimeout(10000);
       socket.connect(
         { port: this.port, host: this.address },
         () => socket.write(`${stringified}\r\n`),
       );
+
+      socket.setTimeout(10000, function() {
+        socket.destroy();
+        reject(`Timeout`);
+      });
 
       socket.on('data', (data) => {
         const string = data.toString('utf8');
@@ -76,7 +80,7 @@ class Device {
         const response = this.unserialize(string);
 
         if(!response) {
-          this.logger.info(`Not a JSON response ${string}`);
+          reject(`Not a JSON`);
           return;
         }
 
@@ -94,15 +98,7 @@ class Device {
         }
 
         socket.on('error', (err) => {
-          this.logger.info(`Error ${err}`);
           reject(err);
-        });
-
-        socket.on('timeout', () => {
-          var command = this.commands[0];
-          console.log(this.commands);
-          this.logger.info(`Timeout, resend ${command}`);
-          this.sendCommand(command);
         });
       });
     });

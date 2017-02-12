@@ -64,7 +64,7 @@ class Device {
       this.logger.info(`Send: ${stringified}`);
 
       var socket = new net.Socket();
-      socket.setTimeout(1000);
+      socket.setTimeout(10000);
       socket.connect(
         { port: this.port, host: this.address },
         () => socket.write(`${stringified}\r\n`),

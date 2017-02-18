@@ -69,6 +69,10 @@ class Device {
         () => socket.write(`${stringified}\r\n`),
       );
 
+      socket.on('error', (err) => {
+        reject(err);
+      });
+
       socket.setTimeout(10000, function() {
         socket.destroy();
         reject(`Timeout`);
@@ -96,10 +100,6 @@ class Device {
         } else {
           reject(`id missmatch: ${response.id} != ${command.id} in ${string}`);
         }
-
-        socket.on('error', (err) => {
-          reject(err);
-        });
       });
     });
   }

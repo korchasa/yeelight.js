@@ -13,8 +13,8 @@ class Device {
   address: string;
   port: string;
   counter: integer;
-  commands: Array<Object>
-  logger: Logger
+  commands: Array<Object>;
+  logger: Logger;
 
   /**
    * Constructor
@@ -23,14 +23,10 @@ class Device {
     if (!payload.address) {
       throw new TypeError('Missing required parameters: address');
     }
-    if (!payload.port) {
-      throw new TypeError('Missing required parameters: port');
-    }
-
     this.commands = [];
     this.counter = 1;
     this.address = payload.address;
-    this.port = payload.port;
+    this.port = payload.port || 55443;
     this.logger = new Logger({ enabled: payload.verbose });
   }
 
@@ -70,6 +66,7 @@ class Device {
       );
 
       socket.on('error', (err) => {
+        socket.destroy();
         reject(err);
       });
 
@@ -128,15 +125,15 @@ class Device {
     return this.sendCommand({ method: 'get_prop', params: props }, false);
   }
 
-  setCtAbx(ctValue: number, effect: string, duration: number): Promise<> {
+  setCtAbx(ctValue: number, effect: string = "smooth", duration: number = 500): Promise<> {
     return this.sendCommand({ method: 'set_ct_abx', params: [ctValue, effect, duration] });
   }
 
-  setRgb(rgbValue: number, effect: string, duration: number): Promise<> {
+  setRgb(rgbValue: number, effect: string = "smooth", duration: number = 500): Promise<> {
     return this.sendCommand({ method: 'set_rgb', params: [rgbValue, effect, duration] });
   }
 
-  setHsv(hue: number, sat: number, effect: string, duration: number): Promise<> {
+  setHsv(hue: number, sat: number, effect: string = "smooth", duration: number = 500): Promise<> {
     return this.sendCommand({ method: 'set_hsv', params: [hue, sat, effect, duration] });
   }
 

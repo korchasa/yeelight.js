@@ -81,7 +81,7 @@ class Device {
         const response = this.unserialize(string);
 
         if(!response) {
-          reject(`Not a JSON`);
+          reject(`Not a JSON reposponse from yeelight: ${string}`);
           return;
         }
 

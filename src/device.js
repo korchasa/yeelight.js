@@ -77,26 +77,28 @@ class Device {
 
       socket.on('data', (data) => {
         const string = data.toString('utf8');
-        this.logger.info(`Received: ${string}`);
-        const response = this.unserialize(string);
+        this.logger.info(`Received: "${string}"`);
+        const lines = string.split("\n");
 
-        if(!response) {
-          reject(`Not a JSON reposponse from yeelight: ${string}`);
-          return;
-        }
+        lines.forEach((string: string) => {
+          const response = this.unserialize(string);
+          if(!response) {
+            reject(`Not a JSON reposponse : ${string}`);
+            return;
+          }
+          if (response.method != undefined && "props" == response.method) {
+            return;
+          }
 
-        if (response.method != undefined && "props" == response.method) {
-          return;
-        }
+          socket.end();
 
-        socket.end();
-
-        if (response.id == command.id) {
-          this.commands = this.commands.filter((command) => command.id != response.id);
-          resolve(response.result);
-        } else {
-          reject(`id missmatch: ${response.id} != ${command.id} in ${string}`);
-        }
+          if (response.id == command.id) {
+            this.commands = this.commands.filter((command) => command.id != response.id);
+            resolve(response.result);
+          } else {
+            reject(`id missmatch: ${response.id} != ${command.id} in ${string}`);
+          }
+        });
       });
     });
   }

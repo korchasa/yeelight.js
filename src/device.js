@@ -9,7 +9,7 @@ import Logger from './logger';
  * Represents a Yeelight device
  */
 class Device {
-  id: number;
+  id: string;
   address: string;
   port: string;
   counter: number;
@@ -19,11 +19,11 @@ class Device {
   /**
    * Constructor
    */
-  constructor(payload: { id: ?number, address: ?string, port: ?string, verbose: ?boolean}) {
+  constructor(payload: { id: string, address: ?string, port: ?string, verbose: ?boolean}) {
     if (!payload.address) {
       throw new TypeError('Missing required parameters: address');
     }
-    this.id = payload.id || 1;
+    this.id = payload.id;
     this.commands = [];
     this.counter = 1;
     this.address = payload.address;

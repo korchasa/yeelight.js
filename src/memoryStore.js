@@ -1,12 +1,11 @@
 /** @flow */
 
-import Store from './store';
 import Device from './device';
 
 /**
  * Memory store for Yeelight devices
  */
-class MemoryStore extends Store {
+class MemoryStore {
 
   devices: Array<Device>
 
@@ -14,7 +13,6 @@ class MemoryStore extends Store {
    * Constructor
    */
   constructor() {
-    super();
     this.devices = [];
   }
 

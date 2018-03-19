@@ -6,13 +6,13 @@
   "scripts": {
     "clean": "rimraf lib",
     "test": "cross-env BABEL_ENV=commonjs mocha --compilers js:babel-register --recursive",
-    "test:watch": "npm test -- --watch",
+    "test:watch": "yarn test -- --watch",
     "test:examples": "node examples/",
     "cover": "cross-env BABEL_ENV=commonjs istanbul cover _mocha --print both -- --compilers js:babel-register --recursive",
     "lint": "eslint src test",
     "build": "cross-env BABEL_ENV=commonjs babel src --out-dir lib",
     "build-docs": "documentation build src/*.js -f md -o DOCS.md",
-    "publish": "npm run clean && npm run flow && npm run lint && npm run test && npm run build && npm run build-docs",
+    "publish": "yarn run clean && yarn run flow && yarn run lint && yarn run test && yarn run build && yarn run build-docs",
     "flow": "flow; test $? -eq 0 -o $? -eq 2"
   },
   "files": [

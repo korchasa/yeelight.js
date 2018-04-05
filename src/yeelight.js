@@ -4,7 +4,6 @@ import EventEmitter from 'events';
 import Logger from './logger';
 import Device from './device';
 import MemoryStore from './memoryStore';
-import Store from './store';
 import Discover from './discover';
 import Watcher from './watch';
 
@@ -78,4 +77,4 @@ class Yeelight extends EventEmitter {
   }
 }
 
-export { Yeelight, Device, Store };
+export { Yeelight, Device, MemoryStore };
